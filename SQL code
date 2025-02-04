@@ -1,0 +1,26 @@
+-- Create a database for the voting system
+CREATE DATABASE IF NOT EXISTS voting_system;
+USE voting_system;
+-- Create a table for voters
+CREATE TABLE IF NOT EXISTS voters (
+id INT AUTO_INCREMENT PRIMARY KEY,
+username VARCHAR(255) NOT NULL,
+password VARCHAR(255) NOT NULL
+);
+-- Create a table for candidates
+CREATE TABLE IF NOT EXISTS candidates (
+id INT AUTO_INCREMENT PRIMARY KEY,
+name VARCHAR(255) NOT NULL
+);
+-- Create a table for storing votes
+CREATE TABLE IF NOT EXISTS votes (
+id INT AUTO_INCREMENT PRIMARY KEY,
+user_id INT NOT NULL,
+candidate VARCHAR(255) NOT NULL,
+FOREIGN KEY (user_id) REFERENCES voters(id)
+);
+-- Sample data for candidates (you can add more candidates as needed)
+use voting_system;
+SELECT * FROM candidates;
+SELECT * FROM votes;
+SELECT * FROM voters;
