@@ -1,0 +1,215 @@
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+public class VotingSystemGUI {
+private static Connection connection;
+public static void main(String[] args) {
+connectToDatabase();
+SwingUtilities.invokeLater(new Runnable() {
+@Override
+public void run() {
+createAndShowGUI();
+}
+});
+}
+private static void connectToDatabase() {
+String url = "jdbc:mysql://localhost:3306/voting_system";
+String username = "root"; // Replace with your MySQL username
+String password = "Chirag@6261"; // Replace with your MySQL password
+try {
+connection = DriverManager.getConnection(url, username, password);
+} catch (SQLException e) {
+e.printStackTrace();
+}
+}
+private static void createAndShowGUI() {
+JFrame frame = new JFrame("Voting Management System");
+frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+frame.setSize(400, 300);
+JTabbedPane tabbedPane = new JTabbedPane();
+JPanel voterRegistrationPanel = createVoterRegistrationPanel();
+JPanel candidateRegistrationPanel = createCandidateRegistrationPanel();
+JPanel loginVotePanel = createLoginVotePanel();
+JPanel resultsPanel = createResultsPanel();
+tabbedPane.addTab("Voter Registration", voterRegistrationPanel);
+tabbedPane.addTab("Candidate Registration", candidateRegistrationPanel);
+tabbedPane.addTab("Login & Vote", loginVotePanel);
+tabbedPane.addTab("Results", resultsPanel);
+frame.add(tabbedPane);
+frame.setVisible(true);
+}
+private static JPanel createVoterRegistrationPanel() {
+JPanel panel = new JPanel();
+panel.setLayout(new GridLayout(4, 2));
+JLabel nameLabel = new JLabel("Username:");
+JTextField nameField = new JTextField();
+JLabel passwordLabel = new JLabel("Password:");
+JPasswordField passwordField = new JPasswordField();
+JButton registerButton = new JButton("Register");
+panel.add(nameLabel);
+panel.add(nameField);
+panel.add(passwordLabel);
+panel.add(passwordField);
+panel.add(registerButton);
+registerButton.addActionListener(new ActionListener() {
+@Override
+public void actionPerformed(ActionEvent e) {
+String username = nameField.getText();
+String password = new String(passwordField.getPassword());
+registerVoter(username, password);
+nameField.setText("");
+passwordField.setText("");
+}
+});
+return panel;
+}
+private static JPanel createCandidateRegistrationPanel() {
+JPanel panel = new JPanel();
+panel.setLayout(new GridLayout(2, 2));
+JLabel nameLabel = new JLabel("Candidate Name:");
+JTextField nameField = new JTextField();
+JButton registerCandidateButton = new JButton("Register Candidate");
+panel.add(nameLabel);
+panel.add(nameField);
+panel.add(registerCandidateButton);
+registerCandidateButton.addActionListener(new ActionListener() {
+@Override
+public void actionPerformed(ActionEvent e) {
+String candidateName = nameField.getText();
+registerCandidate(candidateName);
+nameField.setText("");
+}
+});
+return panel;
+}
+private static JPanel createLoginVotePanel() {
+JPanel panel = new JPanel();
+panel.setLayout(new GridLayout(4, 2));
+JLabel nameLabel = new JLabel("Username:");
+JTextField nameField = new JTextField();
+JLabel passwordLabel = new JLabel("Password:");
+JPasswordField passwordField = new JPasswordField();
+JLabel candidateLabel = new JLabel("Select Candidate:");
+JComboBox<String> candidateComboBox = new JComboBox<>();
+JButton voteButton = new JButton("Vote");
+panel.add(nameLabel);
+panel.add(nameField);
+panel.add(passwordLabel);
+panel.add(passwordField);
+panel.add(candidateLabel);
+panel.add(candidateComboBox);
+panel.add(voteButton);
+// Populate the candidateComboBox with candidate names
+populateCandidateComboBox(candidateComboBox);
+voteButton.addActionListener(new ActionListener() {
+@Override
+public void actionPerformed(ActionEvent e) {
+String username = nameField.getText();
+String password = new String(passwordField.getPassword());
+String selectedCandidate = (String) candidateComboBox.getSelectedItem();
+loginUserAndVote(username, password, selectedCandidate);
+nameField.setText("");
+passwordField.setText("");
+}
+});
+return panel;
+}
+private static JPanel createResultsPanel() {
+JPanel panel = new JPanel();
+panel.setLayout(new BorderLayout());
+JTextArea resultsTextArea = new JTextArea();
+resultsTextArea.setEditable(false);
+JButton calculateResultsButton = new JButton("Calculate Results");
+calculateResultsButton.addActionListener(new ActionListener() {
+@Override
+public void actionPerformed(ActionEvent e) {
+String results = calculateResults();
+resultsTextArea.setText(results);
+}
+});
+panel.add(resultsTextArea, BorderLayout.CENTER);
+panel.add(calculateResultsButton, BorderLayout.SOUTH);
+return panel;
+}
+private static void registerVoter(String username, String password) {
+try {
+String sql = "INSERT INTO voters (username, password) VALUES (?, ?)";
+PreparedStatement statement = connection.prepareStatement(sql);
+statement.setString(1, username);
+statement.setString(2, password);
+statement.executeUpdate();
+JOptionPane.showMessageDialog(null, "Voter registered successfully!");
+} catch (SQLException e) {
+e.printStackTrace();
+}
+}
+private static void registerCandidate(String candidateName) {
+try {
+String sql = "INSERT INTO candidates (name) VALUES (?)";
+PreparedStatement statement = connection.prepareStatement(sql);
+statement.setString(1, candidateName);
+statement.executeUpdate();
+JOptionPane.showMessageDialog(null, "Candidate registered successfully!");
+} catch (SQLException e) {
+e.printStackTrace();
+}
+}
+private static void populateCandidateComboBox(JComboBox<String> candidateComboBox) {
+try {
+String sql = "SELECT name FROM candidates";
+PreparedStatement statement = connection.prepareStatement(sql);
+ResultSet resultSet = statement.executeQuery();
+while (resultSet.next()) {
+String candidateName = resultSet.getString("name");
+candidateComboBox.addItem(candidateName);
+}
+} catch (SQLException e) {
+e.printStackTrace();
+}
+}
+private static void loginUserAndVote(String username, String password, String candidate) {
+try {
+String sql = "SELECT id FROM voters WHERE username = ? AND password = ?";
+PreparedStatement statement = connection.prepareStatement(sql);
+statement.setString(1, username);
+statement.setString(2, password);
+ResultSet resultSet = statement.executeQuery();
+if (resultSet.next()) {
+int userId = resultSet.getInt("id");
+sql = "INSERT INTO votes (user_id, candidate) VALUES (?, ?)";
+statement = connection.prepareStatement(sql);
+statement.setInt(1, userId);
+statement.setString(2, candidate);
+statement.executeUpdate();
+JOptionPane.showMessageDialog(null, "Vote cast successfully!");
+} else {
+JOptionPane.showMessageDialog(null, "Invalid credentials");
+}
+} catch (SQLException e) {
+e.printStackTrace();
+}
+}
+private static String calculateResults() {
+try {
+String sql = "SELECT candidate, COUNT(*) as count FROM votes GROUP BY candidate";
+PreparedStatement statement = connection.prepareStatement(sql);
+ResultSet resultSet = statement.executeQuery();
+StringBuilder results = new StringBuilder();
+while (resultSet.next()) {
+String candidate = resultSet.getString("candidate");
+int count = resultSet.getInt("count");
+results.append(candidate).append(": ").append(count).append(" votes\n");
+}
+return results.toString();
+} catch (SQLException e) {
+e.printStackTrace();
+return "Error calculating results";
+}
+}
+}
